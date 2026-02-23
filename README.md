@@ -1,6 +1,67 @@
 # BlackRock Hacking India 2026 - Auto-Saving API for Planned Retirement
 
-This project implements the required endpoints from the challenge PDF and adds:
+## Architecture diagram 
+
+The diagram is split into **3 layers**, showing how the application is organized in code and in runtime.
+<img width="4212" height="2392" alt="architecture_diagram_blk_hkt" src="https://github.com/user-attachments/assets/95fbe8b8-f663-4857-ac6c-6d0196b601d1" />
+
+### 1) Client → Ingress & Security
+- **Client (Postman/UI)** calls the API and usually sends:
+  - `Authorization: Bearer <JWT>` (required for protected endpoints)
+  - `X-Correlation-Id` (optional; if missing, server generates one)
+  - `Idempotency-Key` (recommended for `returns:*` endpoints to make retries safe)
+- **HTTP Server (Spring Boot @ 5477)** receives the request and runs security filters:
+  - **CorrelationIdFilter (MDC)**: attaches a `correlationId` to MDC so all logs for the request are traceable.
+  - **JwtAuthFilter (async-safe)**: validates the JWT and sets authentication into the SecurityContext.
+    - This filter is enabled for **async dispatch**, so async responses don’t fail with 401 after processing.
+- The request is routed to the appropriate controller:
+  - **TransactionsController** for command-style endpoints (`parse / validator / filter`)
+  - **ReturnsController** for query-style endpoints (`returns:nps / returns:index / performance`)
+
+### 2) CQRS-lite + Core Domain
+We use **CQRS-lite** to keep “commands” and “queries” cleanly separated for scalability.
+
+**Command path (TransactionsController)**
+- Calls **CommandFacade**
+- Executes the **SavingsPipeline (Chain)** in a fixed sequence:
+  1. **Parse**: compute ceiling/remanent and sort transactions once
+  2. **Validate**: apply rules using Specifications + detect duplicates using HashSet
+  3. **Apply Q**: sweep + max-heap (latest-start wins) to override invest amount
+  4. **Apply P**: event-sweep to add extra invest amounts efficiently
+  5. **K aggregation**:
+     - filter endpoint: merge k-intervals for membership checks
+     - returns endpoints: prefix sums + binary search for fast range sums
+- Uses shared **Domain DTOs + Utils** (MoneyMath, TaxUtil, one-time date parsing)
+
+**Query path (ReturnsController)**
+- Calls **QueryFacade**
+- Uses the same pipeline outputs (“savings context”) but wraps returns computation with safety layers:
+  - **Resilience Layer** (Resilience4j):
+    - RateLimiter: protects from request spikes
+    - Bulkhead: isolates compute-heavy returns from other endpoints
+    - TimeLimiter: enforces an upper bound on response time
+    - Dedicated `returnsExecutor` pool to prevent blocking web threads
+  - **IdempotencyService**:
+    - same `Idempotency-Key` → same cached response (safe retries)
+  - **Returns Engine (Strategy + Factory)**:
+    - selects the correct calculator (NPS vs Index) without changing controller code
+
+### 3) Observability & Runtime
+- **RequestTimingInterceptor** captures the last request latency.
+- `GET /performance` exposes:
+  - last latency
+  - memory usage
+  - thread count
+- **Structured logging** uses MDC:
+  - every log line includes `[%X{correlationId}]`, so you can trace one request end-to-end.
+
+### Why this architecture works well
+- **Scalable:** query computations are isolated with bulkhead + executor.
+- **Maintainable:** pipeline steps are modular and testable.
+- **Reliable:** idempotency + rate limiting + timeout prevents duplicate processing and overload.
+- **Debuggable:** correlation-id + performance endpoint helps in production diagnostics.
+
+This project implements the required endpoints from the challenge and adds functionality:
 - **JWT authentication** (`/auth/login`)
 - **Scalable design patterns**: Pipeline/Chain-of-Responsibility, Strategy+Factory, Specification validation, Idempotency
 - **CQRS-lite**: Command-side (`CommandFacade`) for parse/validate/filter and Query-side (`QueryFacade`) for returns/performance
