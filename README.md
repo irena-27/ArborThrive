@@ -112,6 +112,8 @@ Same key + same endpoint => returns cached response.
 - POST `/blackrock/challenge/v1/returns:index`
 - GET  `/blackrock/challenge/v1/performance`
 
+[![Postman Docs](https://img.shields.io/badge/Postman-API%20Docs-orange?logo=postman&logoColor=white)](https://documenter.getpostman.com/view/45185639/2sBXcEmMBN)
+
 ## POST /transactions:parse
 
 Converts raw expenses into enriched transactions by computing:
