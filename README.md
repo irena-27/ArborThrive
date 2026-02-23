@@ -426,25 +426,28 @@ These improvements keep the API fast even when n/q/p/k are large.
 - Idempotency prevents duplicate results on retries
 
 ## Bottlenecks
-Compute-heavy returns endpoints
-bulkhead + dedicated executor + timeout
-Traffic spikes/abuse
-rate limiter
-Retry storms
-idempotency
-Debugging complexity
+Compute-heavy returns endpoints,
+bulkhead + dedicated executor + timeout,
+Traffic spikes/abuse,
+rate limiter,
+Retry storms,
+idempotency,
+Debugging complexity,
 correlation-id trace in logs
 
 ## Risks & future improvements
 Current limitations
-In-memory idempotency store (lost on restart; not shared across replicas)
-No persistent portfolio store
-JWT secret in config can be vaulted in real deployment
+In-memory idempotency store (lost on restart; not shared across replicas),
+
+No persistent portfolio store,
+
+JWT secret in config can be vaulted in real deployment,
+
 Strict date format assumptions (timezone upgrades needed for production)
 
 -Future improvements
-Redis-backed idempotency with TTL
-Cache returns by normalized request hash
-Prometheus + Grafana metrics
-Split into two deployables (Command Service / Query Service) for scaling
-Refresh tokens + RBAC + per-user rate limiting
+Redis-backed idempotency with TTL,
+Cache returns by normalized request hash,
+Prometheus + Grafana metrics,
+Split into two deployables (Command Service / Query Service) for scaling,
+Refresh tokens + RBAC + per-user rate limiting.
