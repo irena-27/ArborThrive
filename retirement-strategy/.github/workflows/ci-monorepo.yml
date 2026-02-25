@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main, v1.0 ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [command-service, query-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -B -DskipTests -pl ${{ matrix.module }} -am package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module }}-jar
+          path: ${{ matrix.module }}/target/*.jar

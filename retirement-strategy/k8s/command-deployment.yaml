@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: command-service
+  namespace: arborthrive
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: command-service
+  template:
+    metadata:
+      labels:
+        app: command-service
+    spec:
+      containers:
+      - name: command-service
+        image: <ACR_LOGIN_SERVER>/command-service:latest
+        ports:
+        - containerPort: 5477
+        readinessProbe:
+          httpGet: { path: /internal/command/health, port: 5477 }
+          initialDelaySeconds: 10
+        livenessProbe:
+          httpGet: { path: /internal/command/health, port: 5477 }
+          initialDelaySeconds: 20
+        resources:
+          requests: { cpu: "200m", memory: "256Mi" }
+          limits: { cpu: "500m", memory: "512Mi" }

@@ -4,8 +4,7 @@
   <component name="MavenProjectsManager">
     <option name="originalFiles">
       <list>
-        <option value="$PROJECT_DIR$/_authfix3/pom.xml" />
-        <option value="$PROJECT_DIR$/retirement-strategy/pom.xml" />
+        <option value="$PROJECT_DIR$/arborthrive-cqrs-monorepo/pom.xml" />
       </list>
     </option>
   </component>

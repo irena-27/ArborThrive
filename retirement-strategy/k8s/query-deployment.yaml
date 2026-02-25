@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-service
+  namespace: arborthrive
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: query-service
+  template:
+    metadata:
+      labels:
+        app: query-service
+    spec:
+      containers:
+      - name: query-service
+        image: <ACR_LOGIN_SERVER>/query-service:latest
+        ports:
+        - containerPort: 5478
+        readinessProbe:
+          httpGet: { path: /internal/query/health, port: 5478 }
+          initialDelaySeconds: 10
+        livenessProbe:
+          httpGet: { path: /internal/query/health, port: 5478 }
+          initialDelaySeconds: 20
+        resources:
+          requests: { cpu: "300m", memory: "384Mi" }
+          limits: { cpu: "1000m", memory: "1Gi" }

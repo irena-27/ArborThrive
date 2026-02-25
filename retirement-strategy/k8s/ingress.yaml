@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: arborthrive-ingress
+  namespace: arborthrive
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /blackrock/challenge/v1/transactions:parse
+        pathType: Prefix
+        backend:
+          service: { name: command-service, port: { number: 80 } }
+      - path: /blackrock/challenge/v1/transactions:validator
+        pathType: Prefix
+        backend:
+          service: { name: command-service, port: { number: 80 } }
+      - path: /blackrock/challenge/v1/transactions:filter
+        pathType: Prefix
+        backend:
+          service: { name: command-service, port: { number: 80 } }
+      - path: /blackrock/challenge/v1/auth
+        pathType: Prefix
+        backend:
+          service: { name: command-service, port: { number: 80 } }
+      - path: /blackrock/challenge/v1/returns:nps
+        pathType: Prefix
+        backend:
+          service: { name: query-service, port: { number: 80 } }
+      - path: /blackrock/challenge/v1/returns:index
+        pathType: Prefix
+        backend:
+          service: { name: query-service, port: { number: 80 } }
+      - path: /blackrock/challenge/v1/performance
+        pathType: Prefix
+        backend:
+          service: { name: query-service, port: { number: 80 } }

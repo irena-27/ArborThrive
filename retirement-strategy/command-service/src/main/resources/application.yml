@@ -1,0 +1,16 @@
+server:
+  port: 5477
+app:
+  security:
+    jwtSecret: change-me-to-a-strong-secret-change-me-to-a-strong-secret
+    jwtExpirationSeconds: 7200
+    demoUsername: demo
+    demoPassword: demo123
+logging:
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{correlationId}] %logger{36} - %msg%n'
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

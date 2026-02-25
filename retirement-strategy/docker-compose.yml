@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  command-service:
+    build: { context: ., dockerfile: command-service/Dockerfile }
+    ports: ["5477:5477"]
+  query-service:
+    build: { context: ., dockerfile: query-service/Dockerfile }
+    ports: ["5478:5478"]
