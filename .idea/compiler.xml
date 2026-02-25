@@ -6,7 +6,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="arbor-thrive" />
+        <module name="shared-domain" />
+        <module name="shared-observability" />
+        <module name="shared-security" />
+        <module name="query-service" />
+        <module name="shared-core" />
+        <module name="command-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

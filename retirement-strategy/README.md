@@ -1,68 +1,57 @@
-# BlackRock Hacking India 2026 - Auto-Saving API for Planned Retirement
+# ArborThrive CQRS Monorepo (Post-hackathon v1.0+)
 
-This project implements the required endpoints from the challenge PDF and adds:
-- **JWT authentication** (`/auth/login`)
-- **Scalable design patterns**: Pipeline/Chain-of-Responsibility, Strategy+Factory, Specification validation, Idempotency
-- **CQRS-lite**: Command-side (`CommandFacade`) for parse/validate/filter and Query-side (`QueryFacade`) for returns/performance
-- **Resilience**: RateLimiter + Bulkhead + TimeLimiter on returns endpoints (Resilience4j)
-- **MDC correlation-id logging** via `X-Correlation-Id`
+Post-hackathon refactor of your BlackRock challenge project into a **multi-module CQRS deployment model**.
 
-## Run
+## Modules
+- `shared-domain` – DTOs + utils
+- `shared-observability` – MDC correlation filter + request timing
+- `shared-security` – JWT service/filter + common SecurityConfig
+- `shared-core` – pipelines, specs, returns calculators, idempotency + store ports
+- `command-service` – transaction parse/validator/filter endpoints
+- `query-service` – returns + performance endpoints
+
+## Why this helps
+- **Independent scaling** of command vs query workloads in AKS
+- **Shared security logic** avoids drift between services
+- **Ports/adapters** (`IdempotencyStore`, `ReadCacheStore`, `CommandAuditStore`) make Redis/DB adoption easier later
+- **Cleaner ownership** for future team scaling
+
+## Run locally (Java)
 ```bash
-mvn clean package -DskipTests
-java -jar target/arbor-thrive-1.0.0.jar
-
+mvn -DskipTests package
+mvn -pl command-service spring-boot:run
+mvn -pl query-service spring-boot:run
 ```
-Runs on `http://localhost:5477`
 
-## Docker
+Command service: `http://localhost:5477`
+Query service: `http://localhost:5478`
+
+## Run locally (Docker)
 ```bash
-mvn clean package
-docker build --no-cache -t arbor-thrive-api
-docker run --name arbor-thrive-api -p 5478:5477 arbor-thrive-api
+docker compose up --build
 ```
 
-## Auth (JWT)
-Login:
-`POST /blackrock/challenge/v1/auth/login`
+## JWT login
+```bash
+curl -X POST http://localhost:5477/blackrock/challenge/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","password":"demo123"}'
+```
+Use the returned token in `Authorization: Bearer <token>` for both services.
 
-Default credentials (change in `application.yml`):
-- username: `demo`
-- password: `demo123`
+## CQRS endpoint split
+**Command service (5477)**
+- `POST /blackrock/challenge/v1/transactions:parse`
+- `POST /blackrock/challenge/v1/transactions:validator`
+- `POST /blackrock/challenge/v1/transactions:filter`
 
-Use the token:
-`Authorization: Bearer <token>`
+**Query service (5478)**
+- `POST /blackrock/challenge/v1/returns:nps`
+- `POST /blackrock/challenge/v1/returns:index`
+- `GET /blackrock/challenge/v1/performance`
 
-## Correlation ID (MDC)
-Send optional header:
-`X-Correlation-Id: <any-id>`
-If absent, server generates one and returns it in the response header.
-
-## Idempotency (returns endpoints)
-Send optional header:
-`Idempotency-Key: <unique-key>`
-Same key + same endpoint => returns cached response.
-
-## Required Endpoints
-- POST `/blackrock/challenge/v1/transactions:parse`
-- POST `/blackrock/challenge/v1/transactions:validator`
-- POST `/blackrock/challenge/v1/transactions:filter`
-- POST `/blackrock/challenge/v1/returns:nps`
-- POST `/blackrock/challenge/v1/returns:index`
-- GET  `/blackrock/challenge/v1/performance`
-
-## Algorithmic optimizations (time & space)
-Optimized the core q/p/k logic for best practical complexity:
-
-- **Parse:** O(n log n) sort by time (timestamps parsed once)
-- **Validate:** O(n) with HashSet duplicate detection
-- **Q periods (override):** sweep-line + max-heap of active intervals
-  - Time **O((n+q) log q)** instead of O(n·q)
-- **P periods (extra add):** sweep-line with start/end events
-  - Time **O(p log p + n)** instead of O(n·p)
-- **K aggregation:** prefix sums + binary search
-  - Time **O(n + k log n)**
-- **Filter K-membership:** merge K intervals + single scan
-  - Time **O(k log k + n)**
-
-These improvements keep the API fast even when n/q/p/k are large.
+## Next production step (recommended)
+- Implement Redis adapters for `IdempotencyStore` + `ReadCacheStore`
+- Implement PostgreSQL/Kafka adapter for `CommandAuditStore`
+- Add API Gateway / Ingress auth offload if desired
+- Add OpenTelemetry tracing + Prometheus metrics
